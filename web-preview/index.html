@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Feature Me — interactive prototype</title>
+<style>
+  /* Theme tokens mirror tailwind.config.js + src/theme/tiers.ts */
+  :root{
+    --ink:#0B0B0F; --surface:#16161D; --surface2:#1F1F29; --line:#2A2A36;
+    --muted:#8A8A99; --text:#F4F4F8; --brand:#7C5CFF; --love:#FF4D6D;
+    --bronze:#CD7F32; --silver:#C0C7D1; --gold:#FFC83D; --diamond:#8FE3FF;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:#070709;color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif}
+  .stage{min-height:100%;display:flex;flex-direction:column;align-items:center;padding:24px 12px 40px}
+  .head{width:100%;max-width:1100px;margin-bottom:18px}
+  .head h1{margin:0;font-size:26px;font-weight:800}
+  .head p{margin:4px 0 0;color:var(--muted);font-size:14px}
+  /* phone */
+  .phone{width:390px;max-width:96vw;height:780px;max-height:86vh;background:var(--ink);
+    border:2px solid var(--line);border-radius:42px;overflow:hidden;position:relative;
+    box-shadow:0 30px 80px rgba(0,0,0,.6)}
+  .screen{position:absolute;inset:0;display:none;flex-direction:column;overflow:hidden}
+  .screen.active{display:flex}
+  .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .scroll::-webkit-scrollbar{display:none}
+  .tabbar{height:64px;border-top:1px solid var(--surface2);background:var(--ink);
+    display:flex;align-items:center;justify-content:space-around;flex-shrink:0;z-index:5}
+  .tabbar button{background:none;border:0;font-size:22px;opacity:.55;cursor:pointer;color:var(--text)}
+  .tabbar button.on{opacity:1;filter:drop-shadow(0 0 6px var(--brand))}
+  /* feed */
+  .post{height:100%;scroll-snap-align:start;position:relative;display:flex;flex-direction:column;justify-content:flex-end}
+  .feedscroll{scroll-snap-type:y mandatory}
+  .post .photo{position:absolute;inset:0;background-size:cover;background-position:center}
+  .post .shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.92) 12%,rgba(0,0,0,0) 55%)}
+  .rail{position:absolute;right:10px;bottom:130px;display:flex;flex-direction:column;align-items:center;gap:20px;z-index:3}
+  .rail .ic{font-size:30px;cursor:pointer;text-align:center;line-height:1}
+  .rail .ic small{display:block;font-size:11px;margin-top:2px}
+  .overlay{position:relative;z-index:2;padding:16px 16px 16px;max-width:78%}
+  .who{display:flex;align-items:center;gap:6px;cursor:pointer}
+  .who b{font-size:17px}
+  .meta{color:#C9C9D4;font-size:13px}
+  .cap{color:#EDEDF2;font-size:14px;margin:6px 0 12px}
+  .row{display:flex;gap:10px}
+  .btn{border:0;border-radius:14px;padding:12px 16px;font-weight:800;font-size:15px;color:#fff;cursor:pointer}
+  .btn.book{background:var(--brand);flex:1}
+  .btn.like{background:rgba(255,255,255,.14)}
+  .btn.like.on{background:var(--love)}
+  .btn.ghost{background:transparent;border:1.5px solid var(--line)}
+  .btn.full{width:100%}
+  .check{width:15px;height:15px;border-radius:50%;background:#1D9BF0;display:inline-flex;
+    align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff}
+  /* generic */
+  .pad{padding:16px}
+  .h2{font-size:24px;font-weight:800;margin:6px 0 12px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{padding:8px 14px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);
+    color:var(--muted);font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap}
+  .chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .chipscroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+  .chipscroll::-webkit-scrollbar{display:none}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 16px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer}
+  .card .av{height:130px;background-size:cover;background-position:center}
+  .card .body{padding:10px}
+  .card .nm{font-weight:700;display:flex;align-items:center;gap:4px}
+  .card .sub{color:var(--muted);font-size:12px}
+  .card .ft{display:flex;justify-content:space-between;margin-top:6px;font-size:12px}
+  .slider{width:100%;accent-color:var(--brand)}
+  .muted{color:var(--muted)}
+  .center{text-align:center}
+  /* fm card */
+  .prof{display:flex;flex-direction:column;align-items:center;padding:16px}
+  .badges{display:flex;flex-wrap:wrap;justify-content:space-around;gap:10px;padding:0 12px}
+  .bw{width:30%;text-align:center}
+  .bw .nm{font-size:12px;font-weight:600;margin-top:6px}
+  .work{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:12px 16px 24px}
+  .work div{aspect-ratio:.8;border-radius:10px;background-size:cover;background-position:center}
+  /* booking */
+  .breakdown{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:16px}
+  .ln{display:flex;justify-content:space-between;padding:4px 0;color:#C9C9D4;font-size:14px}
+  .ln b{color:var(--text)}
+  .hr{height:1px;background:var(--line);margin:8px 0}
+  .escrow{background:#10202a;border:1.5px solid var(--diamond);border-radius:14px;padding:14px;margin-top:14px}
+  .back{position:absolute;top:14px;left:14px;z-index:10;background:rgba(0,0,0,.5);border:0;color:#fff;
+    width:38px;height:38px;border-radius:50%;font-size:18px;cursor:pointer}
+  /* badge ring */
+  .ring{position:relative;display:inline-block}
+  .ring svg{display:block}
+  .ring .crest{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34%}
+  @keyframes pulseGlow{0%,100%{filter:drop-shadow(0 0 4px var(--g))}50%{filter:drop-shadow(0 0 16px var(--g))}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes tw{0%,100%{opacity:.15}50%{opacity:1}}
+  .ring.gold svg,.ring.diamond svg{animation:pulseGlow 1.6s ease-in-out infinite}
+  .ring.silver svg{animation:pulseGlow 2.6s ease-in-out infinite}
+  .spark{position:absolute;width:5px;height:5px;border-radius:50%;background:#fff;animation:tw 1.4s infinite}
+  .note{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:var(--surface2);
+    border:1px solid var(--line);color:var(--muted);font-size:12px;padding:8px 14px;border-radius:999px}
+  @media(max-width:480px){.head{display:none}.stage{padding:0}.phone{width:100vw;height:100vh;max-height:100vh;border-radius:0;border:0}}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="head">
+    <h1>Feature Me</h1>
+    <p>Interactive prototype · same theme tokens, seed data &amp; badge logic as the React Native app. Tap around — like a post, change your radius, open a profile, book a feature.</p>
+  </div>
+
+  <div class="phone">
+    <!-- FEED -->
+    <section class="screen active" data-tab="feed">
+      <div class="scroll feedscroll" id="feed"></div>
+    </section>
+
+    <!-- DISCOVER -->
+    <section class="screen" data-tab="discover">
+      <div class="scroll">
+        <div class="pad">
+          <div class="h2">Discover</div>
+          <div class="muted" style="font-size:13px">See talent within <b id="radlbl">25</b> mi</div>
+          <input class="slider" type="range" min="1" max="100" value="25" id="rad"/>
+          <div class="chipscroll" id="craftchips" style="margin-top:10px"></div>
+        </div>
+        <div class="grid" id="discoGrid"></div>
+      </div>
+    </section>
+
+    <!-- CREATE -->
+    <section class="screen" data-tab="create">
+      <div class="scroll pad">
+        <div class="h2">New post</div>
+        <div class="muted" style="font-size:13px;margin-bottom:12px">Images only for v1. Everything is moderated before it goes live.</div>
+        <div style="height:200px;border:1px dashed var(--line);border-radius:16px;display:flex;align-items:center;justify-content:center;background:var(--surface);color:var(--muted)">＋ Tap to add a photo</div>
+        <div class="escrow" style="background:#1a1726;border-color:var(--line)">🛡️ &nbsp;On upload, a moderation Edge Function (Rekognition + Hive/Thorn, with the NCMEC hook) clears the post before it appears.</div>
+        <button class="btn full" style="background:var(--brand);margin-top:16px">Post (runs moderation)</button>
+      </div>
+    </section>
+
+    <!-- ALERTS -->
+    <section class="screen" data-tab="alerts">
+      <div class="scroll pad">
+        <div class="h2">Activity</div>
+        <div id="alerts"></div>
+      </div>
+    </section>
+
+    <!-- ME -->
+    <section class="screen" data-tab="me">
+      <div class="scroll" id="meScreen"></div>
+    </section>
+
+    <!-- PROFILE (overlay) -->
+    <section class="screen" data-tab="profile">
+      <button class="back" onclick="showTab(lastTab)">‹</button>
+      <div class="scroll" id="profile"></div>
+    </section>
+
+    <!-- BOOKING (overlay) -->
+    <section class="screen" data-tab="booking">
+      <button class="back" onclick="openProfile(bookingArtist)">‹</button>
+      <div class="scroll" id="booking"></div>
+    </section>
+
+    <!-- tab bar -->
+    <nav class="tabbar" id="tabbar">
+      <button data-go="feed" class="on">🏠</button>
+      <button data-go="discover">🧭</button>
+      <button data-go="create">➕</button>
+      <button data-go="alerts">🔔</button>
+      <button data-go="me">👤</button>
+    </nav>
+  </div>
+</div>
+<div class="note">Web prototype of the RN app — open on a phone for full-screen</div>
+
+<script>
+/* ---------- seed data (mirrors src/data/mock.ts) ---------- */
+const TIERS={bronze:['#CD7F32','#E6A857'],silver:['#9AA3AF','#E8EDF4'],gold:['#FFB300','#FFE16B'],diamond:['#8FE3FF','#E7C8FF']};
+const CAP={bronze:'$15',silver:'$40',gold:'$100',diamond:'$999'};
+const crestFor={rapper:'🎤',singer:'🎤',producer:'🎛️',photographer:'📷',videographer:'🎥',model:'💫',barber:'💈',dj:'🎧'};
+const ph=(s)=>`https://picsum.photos/seed/fm-${s}/600/800`;
+const av=(s)=>`https://picsum.photos/seed/fm-av-${s}/240/240`;
+const CRAFTS=['rapper','singer','producer','photographer','videographer','model','barber','dj'];
+const A=[
+ {id:1,h:'Mulamaxs',n:'Mula',craft:'rapper',comp:'Lil Uzi Vert',city:'Centreville, VA',tier:'diamond',v:true,dist:0.4,
+   badges:[['Golden Voice','diamond',1],['Lyrical Pen','diamond',1],['Crowd Mover','diamond',1]],cap:'$999'},
+ {id:2,h:'novasinger',n:'Aria Bell',craft:'singer',comp:'SZA',city:'Fairfax, VA',tier:'gold',v:true,dist:8.1,
+   badges:[['Golden Voice','gold',.62],['Runs & Riffs','silver',.4],['Falsetto','bronze',.25]],cap:'$100'},
+ {id:3,h:'808dmv',n:'Trey Banks',craft:'producer',comp:'Metro Boomin',city:'Arlington, VA',tier:'silver',v:false,dist:14,
+   badges:[['808 Architect','silver',.55],['Melody Maker','bronze',.3]],cap:'$40'},
+ {id:4,h:'shotbykai',n:'Kai Monroe',craft:'photographer',comp:'Cam Kirk',city:'Washington, DC',tier:'gold',v:true,dist:18,
+   badges:[['Golden Hour','gold',.7],['Portrait','silver',.45]],cap:'$100'},
+ {id:5,h:'lensgod',n:'Dom Rivera',craft:'videographer',comp:'Cole Bennett',city:'Alexandria, VA',tier:'silver',v:false,dist:21,
+   badges:[['Cinematic Eye','silver',.5]],cap:'$40'},
+ {id:6,h:'jadewalks',n:'Jade Lin',craft:'model',comp:'Adut Akech',city:'Bethesda, MD',tier:'bronze',v:false,dist:16,
+   badges:[['Golden Smile','bronze',.28]],cap:'$15'},
+ {id:7,h:'fadeking',n:'Marcus Cole',craft:'barber',comp:'Vic Blends',city:'Manassas, VA',tier:'gold',v:true,dist:9,
+   badges:[['Fade Master','gold',.8]],cap:'$100'},
+ {id:8,h:'djspinz',n:'Nikki Spin',craft:'dj',comp:'Kaytranada',city:'Reston, VA',tier:'silver',v:false,dist:23,
+   badges:[['Crowd Read','silver',.5]],cap:'$40'},
+ {id:9,h:'youngflow',n:'Zo',craft:'rapper',comp:'J. Cole',city:'Centreville, VA',tier:'bronze',v:false,dist:1.2,
+   badges:[['Punchline','bronze',.3]],cap:'$15'},
+];
+const byId=(id)=>A.find(a=>a.id===id);
+const POSTS=[
+ {id:'p1',uid:1,cap:'New verse dropping 🔥',img:ph('Mulamaxs-0'),likes:940},
+ {id:'p2',uid:4,cap:'Golden hour magic 📷',img:ph('shotbykai-0'),likes:610},
+ {id:'p3',uid:2,cap:'Late night runs 🎶',img:ph('novasinger-0'),likes:530},
+ {id:'p4',uid:7,cap:'Clean fade ✂️',img:ph('fadeking-0'),likes:410},
+ {id:'p5',uid:3,cap:'This beat is for sale 🎛️',img:ph('808dmv-0'),likes:280},
+ {id:'p6',uid:9,cap:'Who wants a feature?',img:ph('youngflow-0'),likes:120},
+];
+const liked={};
+
+/* ---------- badge ring (mirrors BadgeRing.tsx geometry) ---------- */
+function ring(tier,frac,size,crest){
+  const stroke=Math.max(5,size*.07), r=(size-stroke)/2, c=2*Math.PI*r, cx=size/2;
+  const [g0,g1]=TIERS[tier], gid='g'+Math.random().toString(36).slice(2,7);
+  let sp='';
+  if(tier==='diamond'){const P=[[.16,.10],[.74,.18],[.14,.72],[.70,.78]];
+    sp=P.map((p,i)=>`<span class="spark" style="left:${p[0]*size}px;top:${p[1]*size}px;animation-delay:${i*.35}s"></span>`).join('');}
+  return `<span class="ring ${tier}" style="--g:${g1};width:${size}px;height:${size}px">
+   <svg width="${size}" height="${size}">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${g0}"/><stop offset="1" stop-color="${g1}"/></linearGradient></defs>
+    <circle cx="${cx}" cy="${cx}" r="${r}" stroke="#2A2A36" stroke-width="${stroke}" fill="none"/>
+    <circle cx="${cx}" cy="${cx}" r="${r}" stroke="url(#${gid})" stroke-width="${stroke}" fill="none"
+      stroke-linecap="round" stroke-dasharray="${c*frac} ${c}" transform="rotate(-90 ${cx} ${cx})"/>
+   </svg>
+   ${crest?`<span class="crest" style="font-size:${size*.4}px">${crest}</span>`:''}${sp}
+  </span>`;
+}
+const tierName=t=>t[0].toUpperCase()+t.slice(1);
+const checkEl=v=>v?'<span class="check">✓</span>':'';
+
+/* ---------- FEED ---------- */
+function renderFeed(){
+  document.getElementById('feed').innerHTML=POSTS.map(p=>{
+    const a=byId(p.uid), on=liked[p.id], n=p.likes+(on?1:0);
+    return `<div class="post">
+      <div class="photo" style="background-image:url('${p.img}')"></div>
+      <div class="shade"></div>
+      <div class="rail">
+        <div class="ic" onclick="openProfile(${a.id})">${ring(a.tier,a.tier==='diamond'?1:.5,52,'🏆')}</div>
+        <div class="ic" onclick="toggleLike('${p.id}')">${on?'❤️':'🤍'}<small>${kf(n)}</small></div>
+        <div class="ic">💬<small>Comment</small></div>
+        <div class="ic">↗️<small>Share</small></div>
+        <div class="ic">🔖<small>Save</small></div>
+      </div>
+      <div class="overlay">
+        <div class="who" onclick="openProfile(${a.id})"><b>${a.n}</b>${checkEl(a.v)}<span class="meta">· ${cap(a.craft)} · ${a.dist} mi</span></div>
+        <div class="cap">${p.cap}</div>
+        <div class="row">
+          <button class="btn book" onclick="openBooking(${a.id})">Book Now · ${a.cap}</button>
+          <button class="btn like ${on?'on':''}" onclick="toggleLike('${p.id}')">${on?'❤️':'Like'}</button>
+        </div>
+      </div></div>`;
+  }).join('');
+}
+function toggleLike(id){liked[id]=!liked[id];renderFeed();}
+const kf=n=>n<1000?n:(n/1000).toFixed(1)+'k';
+const cap=s=>({rapper:'Rapper',singer:'Singer',producer:'Producer',photographer:'Photographer',videographer:'Videographer',model:'Model',barber:'Barber',dj:'DJ'})[s]||s;
+
+/* ---------- DISCOVER ---------- */
+let craftFilter=null;
+function renderChips(){
+  const el=document.getElementById('craftchips');
+  el.innerHTML=`<span class="chip ${craftFilter===null?'on':''}" onclick="setCraft(null)">All</span>`+
+    CRAFTS.map(c=>`<span class="chip ${craftFilter===c?'on':''}" onclick="setCraft('${c}')">${cap(c)}</span>`).join('');
+}
+function setCraft(c){craftFilter=c;renderChips();renderDisco();}
+function renderDisco(){
+  const rad=+document.getElementById('rad').value;
+  const list=A.filter(a=>a.dist<=rad&&(craftFilter?a.craft===craftFilter:true)).sort((x,y)=>x.dist-y.dist);
+  document.getElementById('discoGrid').innerHTML=list.map(a=>`
+    <div class="card" onclick="openProfile(${a.id})">
+      <div class="av" style="background-image:url('${av(a.h)}')"></div>
+      <div class="body">
+        <div class="nm">${a.n}${checkEl(a.v)}</div>
+        <div class="sub">${cap(a.craft)}</div>
+        <div class="ft"><span style="color:${TIERS[a.tier][1]};font-weight:700">${tierName(a.tier)}</span><span class="muted">${a.dist} mi</span></div>
+      </div></div>`).join('')||`<div class="muted center" style="grid-column:1/3;margin-top:30px">No artists in range — widen your radius.</div>`;
+}
+
+/* ---------- PROFILE / FM CARD ---------- */
+let lastTab='feed', bookingArtist=1;
+function openProfile(id){
+  const a=byId(id);
+  document.getElementById('profile').innerHTML=`
+    <div class="prof">
+      ${ring(a.tier,a.tier==='diamond'?1:.4,120,crestFor[a.craft]||'🏆')}
+      <div style="display:flex;align-items:center;gap:6px;margin-top:12px"><span style="font-size:24px;font-weight:800">${a.n}</span>${checkEl(a.v)}</div>
+      <div class="muted">@${a.h}</div>
+      <div style="color:${TIERS[a.tier][1]};font-weight:700;margin-top:4px">${tierName(a.tier)} ${cap(a.craft)} · earns up to ${a.cap}</div>
+      <div style="color:#C9C9D4;margin-top:4px">Compares to ${a.comp}</div>
+      <div class="muted" style="margin-top:4px">📍 ${a.city}</div>
+      <div class="row" style="width:100%;margin-top:16px">
+        <button class="btn full" style="background:var(--brand);flex:1">Follow</button>
+        <button class="btn ghost" style="flex:1">DM</button>
+      </div>
+      <button class="btn full" style="background:var(--brand);margin-top:10px" onclick="openBooking(${a.id})">Book a Feature · up to ${a.cap}</button>
+    </div>
+    <div class="pad" style="padding-bottom:0"><div class="h2" style="font-size:18px">Badges</div></div>
+    <div class="badges">${a.badges.map(b=>`
+      <div class="bw">${ring(b[1],b[2],78,'🏅')}<div class="nm">${b[0]}</div>
+      <div style="color:${TIERS[b[1]][1]};font-size:11px">${tierName(b[1])}</div></div>`).join('')}</div>
+    <div class="pad" style="padding-bottom:0"><div class="h2" style="font-size:18px">Work</div></div>
+    <div class="work">${[0,1,2,3,4,5].map(i=>`<div style="background-image:url('${ph(a.h+'-w'+i)}')"></div>`).join('')}</div>`;
+  if(currentTab!=='profile'&&currentTab!=='booking')lastTab=currentTab;
+  showTab('profile',true);
+}
+
+/* ---------- BOOKING + ESCROW ---------- */
+const STATES={
+  funded:['🔒','Funds secured','Money is held in escrow. Work can begin.'],
+  delivered:['📦','Delivered','Review the work. Approve to release, or request a revision.'],
+  revision:['↩️','Revision','Artist is reworking the delivery.'],
+  completed:['✅','Completed','Escrow released to the artist. FM kept 15%.'],
+  disputed:['⚖️','Disputed','Under platform review. Funds stay held until resolved.'],
+  refunded:['↩️','Refunded','Escrow returned to the client.'],
+};
+let bookAmt=75;
+function openBooking(id){bookingArtist=id;bookAmt=Math.min(75,capCents(byId(id).tier));renderBooking(byId(id));showTab('booking',true);}
+function capCents(t){return{bronze:15,silver:40,gold:100,diamond:999}[t];}
+function renderBooking(a){
+  const cap=capCents(a.tier);
+  const presets=[15,40,75,100,250,500,999].filter(p=>p<=cap);
+  if(!presets.includes(bookAmt))bookAmt=presets[0];
+  const fee=(bookAmt*0.15);
+  document.getElementById('booking').innerHTML=`
+    <div class="pad">
+      <div class="h2">Book ${a.n}</div>
+      <div style="color:${TIERS[a.tier][1]}">${tierName(a.tier)} tier · cap ${a.cap}</div>
+      <div class="muted" style="margin:18px 0 8px;font-size:13px">Amount</div>
+      <div class="chips">${presets.map(p=>`<span class="chip ${p===bookAmt?'on':''}" onclick="setAmt(${p})">$${p}</span>`).join('')}</div>
+      <div class="muted" style="margin:14px 0 8px;font-size:13px">Revisions included (min 1)</div>
+      <div class="chips">${[1,2,3].map(r=>`<span class="chip ${r===2?'on':''}">${r}</span>`).join('')}</div>
+      <div class="breakdown">
+        <div class="ln">Feature price <b>$${bookAmt.toFixed(2).replace('.00','')}</b></div>
+        <div class="ln muted">FM fee (15%) <span>– $${fee.toFixed(2)}</span></div>
+        <div class="hr"></div>
+        <div class="ln">Artist receives <b>$${(bookAmt-fee).toFixed(2)}</b></div>
+        <div style="color:var(--diamond);font-size:12px;margin-top:10px">🔒 Funds held in escrow, released only when you approve.</div>
+      </div>
+      <button class="btn full" style="background:var(--brand);margin-top:16px" onclick="setState('funded')">Fund booking · $${bookAmt} (Apple / Google Pay)</button>
+      <div class="muted center" style="font-size:11px;margin-top:10px">Real-world service — Stripe, not in-app purchase.</div>
+      <div id="estate"></div>
+    </div>`;
+}
+function setAmt(p){bookAmt=p;renderBooking(byId(bookingArtist));}
+function setState(s){
+  const [ic,t,b]=STATES[s], held=['funded','delivered','revision','disputed'].includes(s);
+  let actions='';
+  if(s==='funded')actions=`<button class="btn full" style="background:var(--brand);margin-top:12px" onclick="setState('delivered')">Artist delivered → review</button>`;
+  if(s==='delivered')actions=`<button class="btn full" style="background:var(--brand);margin-top:12px" onclick="setState('completed')">Approve → release escrow</button>
+    <button class="btn full ghost" style="margin-top:8px" onclick="setState('revision')">Request revision</button>
+    <button class="btn full" style="background:var(--love);margin-top:8px" onclick="setState('disputed')">Open dispute</button>`;
+  if(s==='revision')actions=`<button class="btn full" style="background:var(--brand);margin-top:12px" onclick="setState('delivered')">Redelivered → review</button>`;
+  if(s==='disputed')actions=`<button class="btn full" style="background:var(--love);margin-top:12px" onclick="setState('refunded')">Refund client</button>
+    <button class="btn full" style="background:var(--brand);margin-top:8px" onclick="setState('completed')">Release to artist</button>`;
+  document.getElementById('estate').innerHTML=`
+    <div class="escrow" style="${held?'':'border-color:var(--line);background:var(--surface)'}">
+      <div style="font-size:30px;text-align:center">${ic}</div>
+      <div style="font-weight:800;text-align:center;font-size:18px;margin-top:4px">${t}</div>
+      <div class="muted center" style="font-size:13px;margin-top:4px">${b}</div>
+      <div class="muted center" style="font-size:11px;margin-top:8px">Both parties see this status at every step.</div>
+    </div>${actions}`;
+  document.getElementById('estate').scrollIntoView({behavior:'smooth'});
+}
+
+/* ---------- ME ---------- */
+function renderMe(){
+  const a=byId(1);
+  document.getElementById('meScreen').innerHTML=`
+    <div class="prof">
+      ${ring('diamond',1,104,'🏆')}
+      <div style="display:flex;align-items:center;gap:6px;margin-top:10px"><span style="font-size:22px;font-weight:800">Mula</span>${checkEl(true)}</div>
+      <div class="muted">@Mulamaxs · Rapper</div>
+      <div style="color:var(--diamond);font-weight:700;margin-top:4px">Diamond · earns up to $999</div>
+    </div>
+    <div class="pad">
+      ${row('View my FM card','',()=>openProfile(1))}
+      ${row('Edit build (craft · comps · badges)')}
+      <div class="muted" style="text-transform:uppercase;font-size:12px;font-weight:700;margin:18px 0 8px">Discovery radius</div>
+      <div class="muted" style="font-size:13px">See talent within <b>25</b> mi</div>
+      <input class="slider" type="range" min="1" max="100" value="25"/>
+      <div class="muted" style="text-transform:uppercase;font-size:12px;font-weight:700;margin:18px 0 8px">Monetization</div>
+      ${row('FM+ subscription','Boosts · promo · analytics · Go Live')}
+      ${row('Get the Certified Check','Paid verification')}
+      ${row('Payouts (Stripe Express)','Connect a bank to get paid')}
+      <div class="center" style="color:var(--love);margin-top:18px;cursor:pointer">Sign out</div>
+    </div>`;
+}
+function row(label,sub,fn){const id='r'+Math.random().toString(36).slice(2,7);
+  setTimeout(()=>{const e=document.getElementById(id);if(e&&fn)e.onclick=fn;},0);
+  return `<div id="${id}" style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer">
+    <div style="font-weight:600">${label}</div>${sub?`<div class="muted" style="font-size:12px;margin-top:2px">${sub}</div>`:''}</div>`;}
+
+/* ---------- ALERTS ---------- */
+function renderAlerts(){
+  const N=[['🏆','Badge level-up!','Your Steady Flow badge climbed to Silver.','2m'],
+   ['❤️','Love milestone','Your latest post passed 500 likes.','1h'],
+   ['👤','New follower','Aria Bell started following you.','3h'],
+   ['💸','Booking funded','Kai Monroe funded your $75 feature — funds secured in escrow.','5h'],
+   ['💬','New message','Trey Banks sent you a message.','1d']];
+  document.getElementById('alerts').innerHTML=N.map(n=>`
+    <div style="display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--surface2)">
+      <div style="font-size:24px">${n[0]}</div>
+      <div style="flex:1"><div style="font-weight:700">${n[1]}</div><div class="muted">${n[2]}</div></div>
+      <div class="muted" style="font-size:12px">${n[3]}</div></div>`).join('');
+}
+
+/* ---------- nav ---------- */
+let currentTab='feed';
+function showTab(t,overlay){
+  currentTab=t;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.dataset.tab===t));
+  document.querySelectorAll('#tabbar button').forEach(b=>b.classList.toggle('on',b.dataset.go===t));
+  document.getElementById('tabbar').style.display=overlay&&(t==='profile'||t==='booking')?'none':'flex';
+}
+document.getElementById('tabbar').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return; showTab(b.dataset.go);
+  if(b.dataset.go==='discover'){renderChips();renderDisco();}
+  if(b.dataset.go==='me')renderMe();
+  if(b.dataset.go==='alerts')renderAlerts();
+});
+document.getElementById('rad').addEventListener('input',e=>{document.getElementById('radlbl').textContent=e.target.value;renderDisco();});
+
+renderFeed();
+</script>
+</body>
+</html>
