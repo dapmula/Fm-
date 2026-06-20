@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "Feature Me",
+    "slug": "feature-me",
+    "version": "0.1.0",
+    "scheme": "featureme",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B0B0F"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.featureme.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Feature Me uses your location to show talent near you and set your discovery radius.",
+        "NSPhotoLibraryUsageDescription": "Feature Me needs access to your photos so you can post your work."
+      }
+    },
+    "android": {
+      "package": "com.featureme.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B0B0F"
+      },
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-location",
+      "expo-secure-store",
+      [
+        "react-native-maps",
+        {
+          "iosGoogleMapsApiKey": "",
+          "androidGoogleMapsApiKey": ""
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "supabaseUrl": "",
+      "supabaseAnonKey": ""
+    }
+  }
+}
